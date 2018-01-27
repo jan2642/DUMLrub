@@ -269,6 +269,10 @@ class FlightController
         return false
     end
 
+    def reboot()
+        @duml.send(DUML::Msg.new(@src, @dst, 0x40, 0x00, 0x0b, [ 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ]))
+    end
+
     ### Monitor commands ###
 
     def fc_monitor(cmd, payload = [], encode_length = true)
