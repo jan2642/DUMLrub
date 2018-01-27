@@ -330,6 +330,17 @@ class FlightController
         end
         return reply.payload[3..-1].pack("C*")
     end
+
+    def fc_monitor_set_privacy(privacy)
+        reply = fc_monitor(0x05, [ privacy ].pack("L<").unpack("C*"), false)
+        return reply.payload[1]
+    end
+
+    def fc_monitor_get_privacy()
+        reply = fc_monitor(0x06)
+        # TODO: error handling
+        return reply.payload[2..-1].pack("C*").unpack("L<")[0]
+    end
 end
 
 if __FILE__ == $0
@@ -381,6 +392,15 @@ if __FILE__ == $0
         parser.on("-D", "--droneid",
                   "Set/Get the drone ID. If -v is also provided, the drone ID will be set to that value") do
             options["droneid"] = true
+        end
+        parser.on("-P", "--privacy",
+                  "Set/Get the privacy flags. If -v is also provided, the privacy flags will be set to that value",
+                  "  ....x  Show/Hide serial number",
+                  "  ...x.  Show/Hide state like position, roll, yaw, imu data, ...",
+                  "  ..x..  Show/Hide ReturnToHome position",
+                  "  .x...  Show/Hide droneID",
+                  "  x....  Show/Hide flight purpose") do
+            options["privacy"] = true
         end
     end.parse!
 
@@ -464,7 +484,26 @@ if __FILE__ == $0
         exit
     end
 
-    sleep(1) if options["debug"]
+    if options["privacy"]
+        if options["value"]
+            new_value = options["value"].to_i(2) & 0x1f
+            privacy = fc.fc_monitor_get_privacy() # Get the current value
+            privacy = privacy & ~0x1f             # Mask out the original flags
+            privacy = privacy | new_value         # Put in the new flags
+            reply = fc.fc_monitor_set_privacy(privacy)
+            if reply == 0
+                puts "Success setting privacy flags to '#{new_value.to_s(2).rjust(5, "0")}'"
+            else
+                puts "Failed setting privacy flags, errorcode: #{reply}"
+            end
+        else
+            privacy = fc.fc_monitor_get_privacy()
+            puts (privacy & 0x1f).to_s(2).rjust(5, "0")
+        end
+        exit
+    end
+
+    sleep(2) if options["debug"]
 end
 
 # vim: expandtab:ts=4:sw=4
